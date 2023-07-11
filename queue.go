@@ -13,11 +13,12 @@ import (
 // Queue is a standard FIFO (first in, first out) queue.
 type Queue struct {
 	sync.RWMutex
-	DataDir string
-	db      *leveldb.DB
-	head    uint64
-	tail    uint64
-	isOpen  bool
+	DataDir  string
+	db       *leveldb.DB
+	headInit uint64
+	heads    []uint64
+	tail     uint64
+	isOpen   bool
 }
 
 // OpenQueue opens a queue if one exists at the given directory. If one
