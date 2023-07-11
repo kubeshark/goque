@@ -3,7 +3,7 @@ module goque
 go 1.19
 
 require (
-	github.com/beeker1121/goque v2.1.0+incompatible
+	github.com/kubeshark/goque v2.1.0+incompatible
 	github.com/syndtr/goleveldb v1.0.0
 )
 

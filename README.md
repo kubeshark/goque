@@ -1,4 +1,4 @@
-# Goque [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/beeker1121/goque) [![License](http://img.shields.io/badge/license-mit-blue.svg)](https://raw.githubusercontent.com/beeker1121/goque/master/LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/beeker1121/goque)](https://goreportcard.com/report/github.com/beeker1121/goque) [![Build Status](https://travis-ci.org/beeker1121/goque.svg?branch=master)](https://travis-ci.org/beeker1121/goque)
+# Goque [![GoDoc](http://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/kubeshark/goque) [![License](http://img.shields.io/badge/license-mit-blue.svg)](https://raw.githubusercontent.com/kubeshark/goque/master/LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/kubeshark/goque)](https://goreportcard.com/report/github.com/kubeshark/goque) [![Build Status](https://travis-ci.org/kubeshark/goque.svg?branch=master)](https://travis-ci.org/kubeshark/goque)
 
 Goque provides embedded, disk-based implementations of stack and queue data structures.
 
@@ -20,13 +20,13 @@ Instead of using an in-memory heap structure to store data, everything is stored
 Fetch the package from GitHub:
 
 ```sh
-go get github.com/beeker1121/goque
+go get github.com/kubeshark/goque
 ```
 
 Import to your project:
 
 ```go
-import "github.com/beeker1121/goque"
+import "github.com/kubeshark/goque"
 ```
 
 ## Usage
@@ -359,7 +359,7 @@ BenchmarkQueueEnqueue             200000              8049 ns/op             487
 BenchmarkQueueDequeue             200000             18970 ns/op            1089 B/op         17 allocs/op
 BenchmarkStackPush                200000              8145 ns/op             487 B/op          7 allocs/op
 BenchmarkStackPop                 200000             18947 ns/op            1097 B/op         17 allocs/op
-ok      github.com/beeker1121/goque     22.549s
+ok      github.com/kubeshark/goque     22.549s
 ```
 
 Go 1.8:
@@ -375,7 +375,7 @@ BenchmarkQueueDequeue             200000             11537 ns/op            1125
 BenchmarkStackPush                300000              4631 ns/op             513 B/op          9 allocs/op
 BenchmarkStackPop                 200000              9629 ns/op            1116 B/op         19 allocs/op
 PASS
-ok      github.com/beeker1121/goque     18.135s
+ok      github.com/kubeshark/goque     18.135s
 ```
 
 ## Thanks

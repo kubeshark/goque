@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/beeker1121/goque"
+	"github.com/kubeshark/goque"
 )
 
 type Obj struct {
