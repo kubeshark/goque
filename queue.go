@@ -28,11 +28,12 @@ func OpenQueue(dataDir string) (*Queue, error) {
 
 	// Create a new Queue.
 	q := &Queue{
-		DataDir: dataDir,
-		db:      &leveldb.DB{},
-		head:    0,
-		tail:    0,
-		isOpen:  false,
+		DataDir:  dataDir,
+		db:       &leveldb.DB{},
+		headInit: 0,
+		heads:    []uint64{},
+		tail:     0,
+		isOpen:   false,
 	}
 
 	// Open database for the queue.
@@ -122,7 +123,7 @@ func (q *Queue) EnqueueObjectAsJSON(value interface{}) (*Item, error) {
 }
 
 // Dequeue removes the next item in the queue and returns it.
-func (q *Queue) Dequeue() (*Item, error) {
+func (q *Queue) Dequeue(i int) (*Item, error) {
 	q.Lock()
 	defer q.Unlock()
 
@@ -131,133 +132,20 @@ func (q *Queue) Dequeue() (*Item, error) {
 		return nil, ErrDBClosed
 	}
 
-	// Try to get the next item in the queue.
-	item, err := q.getItemByID(q.head + 1)
-	if err != nil {
-		return nil, err
+	if len(q.heads) < i+1 {
+		q.heads = append(q.heads, q.headInit)
 	}
 
-	// Remove this item from the queue.
-	if err := q.db.Delete(item.Key, nil); err != nil {
+	// Try to get the next item in the queue.
+	item, err := q.getItemByID(q.heads[i] + 1)
+	if err != nil {
 		return nil, err
 	}
 
 	// Increment head position.
-	q.head++
+	q.heads[i]++
 
 	return item, nil
-}
-
-// Peek returns the next item in the queue without removing it.
-func (q *Queue) Peek() (*Item, error) {
-	q.RLock()
-	defer q.RUnlock()
-
-	// Check if queue is closed.
-	if !q.isOpen {
-		return nil, ErrDBClosed
-	}
-
-	return q.getItemByID(q.head + 1)
-}
-
-// PeekByOffset returns the item located at the given offset,
-// starting from the head of the queue, without removing it.
-func (q *Queue) PeekByOffset(offset uint64) (*Item, error) {
-	q.RLock()
-	defer q.RUnlock()
-
-	// Check if queue is closed.
-	if !q.isOpen {
-		return nil, ErrDBClosed
-	}
-
-	return q.getItemByID(q.head + offset + 1)
-}
-
-// PeekByID returns the item with the given ID without removing it.
-func (q *Queue) PeekByID(id uint64) (*Item, error) {
-	q.RLock()
-	defer q.RUnlock()
-
-	// Check if queue is closed.
-	if !q.isOpen {
-		return nil, ErrDBClosed
-	}
-
-	return q.getItemByID(id)
-}
-
-// Update updates an item in the queue without changing its position.
-func (q *Queue) Update(id uint64, newValue []byte) (*Item, error) {
-	q.Lock()
-	defer q.Unlock()
-
-	// Check if queue is closed.
-	if !q.isOpen {
-		return nil, ErrDBClosed
-	}
-
-	// Check if item exists in queue.
-	if id <= q.head || id > q.tail {
-		return nil, ErrOutOfBounds
-	}
-
-	// Create new Item.
-	item := &Item{
-		ID:    id,
-		Key:   idToKey(id),
-		Value: newValue,
-	}
-
-	// Update this item in the queue.
-	if err := q.db.Put(item.Key, item.Value, nil); err != nil {
-		return nil, err
-	}
-
-	return item, nil
-}
-
-// UpdateString is a helper function for Update that accepts a value
-// as a string rather than a byte slice.
-func (q *Queue) UpdateString(id uint64, newValue string) (*Item, error) {
-	return q.Update(id, []byte(newValue))
-}
-
-// UpdateObject is a helper function for Update that accepts any
-// value type, which is then encoded into a byte slice using
-// encoding/gob.
-//
-// Objects containing pointers with zero values will decode to nil
-// when using this function. This is due to how the encoding/gob
-// package works. Because of this, you should only use this function
-// to encode simple types.
-func (q *Queue) UpdateObject(id uint64, newValue interface{}) (*Item, error) {
-	var buffer bytes.Buffer
-	enc := gob.NewEncoder(&buffer)
-	if err := enc.Encode(newValue); err != nil {
-		return nil, err
-	}
-	return q.Update(id, buffer.Bytes())
-}
-
-// UpdateObjectAsJSON is a helper function for Update that accepts
-// any value type, which is then encoded into a JSON byte slice using
-// encoding/json.
-//
-// Use this function to handle encoding of complex types.
-func (q *Queue) UpdateObjectAsJSON(id uint64, newValue interface{}) (*Item, error) {
-	jsonBytes, err := json.Marshal(newValue)
-	if err != nil {
-		return nil, err
-	}
-
-	return q.Update(id, jsonBytes)
-}
-
-// Length returns the total number of items in the queue.
-func (q *Queue) Length() uint64 {
-	return q.tail - q.head
 }
 
 // Close closes the LevelDB database of the queue.
@@ -277,7 +165,8 @@ func (q *Queue) Close() error {
 
 	// Reset queue head and tail and set
 	// isOpen to false.
-	q.head = 0
+	q.headInit = 0
+	q.heads = []uint64{}
 	q.tail = 0
 	q.isOpen = false
 
@@ -295,13 +184,6 @@ func (q *Queue) Drop() error {
 
 // getItemByID returns an item, if found, for the given ID.
 func (q *Queue) getItemByID(id uint64) (*Item, error) {
-	// Check if empty or out of bounds.
-	if q.Length() == 0 {
-		return nil, ErrEmpty
-	} else if id <= q.head || id > q.tail {
-		return nil, ErrOutOfBounds
-	}
-
 	// Get item from database.
 	var err error
 	item := &Item{ID: id, Key: idToKey(id)}
@@ -320,7 +202,7 @@ func (q *Queue) init() error {
 
 	// Set queue head to the first item.
 	if iter.First() {
-		q.head = keyToID(iter.Key()) - 1
+		q.headInit = keyToID(iter.Key()) - 1
 	}
 
 	// Set queue tail to the last item.
